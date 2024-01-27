@@ -19,7 +19,7 @@ jobs:
       with:
         filename: controls_APSystemsFHEM.txt 
     - name: update CHANGED
-      if: steps.extract_branch.outputs.branch == 'master'
+      if: steps.extract_branch.outputs.branch == 'main'
       run: |
         LOG=$(date +"%Y-%m-%d") 
         LOG+=" - $(git log -1 --pretty=%B)"
