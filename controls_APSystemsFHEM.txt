@@ -1,2 +1,2 @@
 UPD 2024-01-27_15:43:16 11204  FHEM/10_APsystemsEMA.pm
-UPD 2024-01-27_13:04:00 6186   FHEM/11_APsystemsInverter.pm
+UPD 2024-01-27_15:45:52 6181   FHEM/11_APsystemsInverter.pm
