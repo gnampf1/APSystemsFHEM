@@ -5,7 +5,6 @@
 # copyright 2023, Daniel Ridders
 #
 ###############################################################################
-#Test
 package main;
 
 use strict;
