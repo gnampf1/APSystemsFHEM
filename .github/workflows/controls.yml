@@ -1,0 +1,9 @@
+    steps: 
+    - name: Checkout Repostory
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: update controls files
+      uses: fhem/fhem-controls-actions@v2.1.0
+      with:
+        filename: controls_APSystemsFHEM.txt 
