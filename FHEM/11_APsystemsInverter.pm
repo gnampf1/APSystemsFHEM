@@ -72,7 +72,6 @@ sub APsystemsInverter_Parse
         Log3($hash->{NAME}, 3, "APSystemsInverter found $hash->{NAME}");
         $json = decode_json($json);
         
- #       Log3($name, 3, "Gesamtproduktion: $json->{total}, Duration $json->{duration}, co2: $json->{co2}, Max Leistung: $json->{max}");
         my @freq = @{ $json->{HZ} };
         my @activePower = @{ $json->{AP} };
         my @reactivePower = @{ $json->{RP} };
@@ -112,17 +111,13 @@ sub APsystemsInverter_Parse
         {
             my $dt = DateTime->from_epoch(epoch => $key / 1000);
             my $tz = DateTime::TimeZone->new(name => "America/Denver"); # Data seems to have an 6 hour offset, not sure if with DST or not
-#            if ($dt->is_dst)
-#            {
-#                $tz = DateTime::TimeZone->new(name => "Etc/GMT-6");
-#            }
             $dt->add(seconds => -$tz->offset_for_datetime($dt));
             $dt->set_time_zone("local");
 
             my $parser = DateTime::Format::Strptime->new(
                 pattern => '%Y-%m-%d %H:%M:%S',
                 on_error => 'croak',
-);
+            );
             my $readingsDt = $parser->parse_datetime(ReadingsTimestamp($name, "ActivePower", "1900-01-01 00:00:00"));
             $readingsDt->set_time_zone("local");
 
@@ -149,12 +144,20 @@ sub APsystemsInverter_Parse
                     $currPower += $item->{"Inverter$x"}{Power};
                     $x++;
                 }
+                APsystemsInverter_SetVal($hash, "TotalPowerDC", $currPower, $ts);
+            }
+            else
+            {
+                my $x = 1;
+                while (defined $item->{"Inverter$x"})
+                {
+                    $currPower += $item->{"Inverter$x"}{Power};
+                    $x++;
+                }
             }
         }
 
         readingsSingleUpdate($hash,"state", "Heute: $json->{total} kWh, Gesamt: ???, Aktuell: $currPower W",1);
-#        $hash->{CHANGED} = (); # need to reset here, else everything gets confused...
-#        $hash->{CHANGETIME} = ();
 
         return $hash->{NAME};
     }
