@@ -121,10 +121,9 @@ sub APsystemsInverter_Parse
             my $readingsDt = $parser->parse_datetime(ReadingsTimestamp($name, "ActivePower", "1900-01-01 00:00:00"));
             $readingsDt->set_time_zone("local");
 
+            my $item = $data->{$key};
             if ($readingsDt->epoch < $dt->epoch)
             {
-                my $item = $data->{$key};
-
                 my $ts = $dt->strftime("%Y-%m-%d %H:%M:%S");
 
                 $currPower = 0;
