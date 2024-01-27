@@ -122,11 +122,11 @@ sub APsystemsInverter_Parse
             $readingsDt->set_time_zone("local");
 
             my $item = $data->{$key};
+            $currPower = 0;
             if ($readingsDt->epoch < $dt->epoch)
             {
                 my $ts = $dt->strftime("%Y-%m-%d %H:%M:%S");
 
-                $currPower = 0;
                 APsystemsInverter_SetVal($hash, "ActivePower", $item->{ActivePower}, $ts);
                 APsystemsInverter_SetVal($hash, "OverallPower", $item->{OverallPower}, $ts);
                 APsystemsInverter_SetVal($hash, "ReactivePower", $item->{ReactivePower}, $ts);
