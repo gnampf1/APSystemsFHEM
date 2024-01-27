@@ -18,3 +18,21 @@ jobs:
       uses: fhem/fhem-controls-actions@v2.1.0
       with:
         filename: controls_APSystemsFHEM.txt 
+    - name: update CHANGED
+      if: steps.extract_branch.outputs.branch == 'master'
+      run: |
+        LOG=$(date +"%Y-%m-%d") 
+        LOG+=" - $(git log -1 --pretty=%B)"
+        echo "$LOG" | cat - CHANGED > temp && mv temp CHANGED
+    - name: git commit back
+      run: |
+        git config --global user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git ls-files --error-unmatch controls_APSystemsFHEM.txt || git add controls_APSystemFHEM.txt 
+        git ls-files --error-unmatch CHANGED || git add CHANGED
+        git diff --name-only --exit-code controls_APSystemFHEM.txt || git commit CHANGED controls_APSystemsFHEM.txt -m "Automatic updated controls and CHANGED" || true
+    - name: Push  to branch 
+      uses: CasperWA/push-protected@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ steps.extract_branch.outputs.branch }}
