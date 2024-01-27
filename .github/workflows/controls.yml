@@ -1,3 +1,13 @@
+name: controlsFile
+
+on:
+  push:
+    paths: 
+      - 'FHEM/**'
+      - '.github/workflows/update.yml'
+
+jobs:
+  update:
     steps: 
     - name: Checkout Repostory
       uses: actions/checkout@v3
