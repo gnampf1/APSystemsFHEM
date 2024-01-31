@@ -24,12 +24,19 @@ sub APsystemsInverter_Initialize {
 
   $hash->{DefFn}          = "APsystemsInverter_Define";
   $hash->{ParseFn}        = "APsystemsInverter_Parse";
+  $hash->{AttrFn}         = "APsystemsInverter_Attr";
+  $hash->{AttrList}       = "".$readingFnAttributes;
 
   $hash->{Match}          = '^ECU[0-9]{12}INV[0-9]{12}DATA.*$';
 
   $hash->{AutoCreate} = {"APsystemsInverter_.*"  => { autocreateThreshold => "1:0" }
                         };
 
+  return undef;
+};
+
+sub APsystemsInverter_Attr {
+  my ($hash) = @_;
   return undef;
 };
 
