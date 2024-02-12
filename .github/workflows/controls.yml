@@ -15,7 +15,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: update controls files
-      uses: fhem/fhem-controls-actions@V2.2.1
+      uses: fhem/fhem-controls-actions@v2.3.0
       with:
         filename: controls_APSystemsFHEM.txt 
     - name: update CHANGED
