@@ -82,10 +82,13 @@ sub APsystemsEMA_Timer {
 
   try sub {
     my $param = {
-                    url        => "https://www.apsystemsema.com/",
+                    url        => "https://www.apsystemsema.com/ema/index.action",
                     timeout    => 5,
                     hash       => $hash,
                     method     => "GET",
+                    header     => { 
+                                    "User-Agent" => "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                                  },
                     callback   => \&APsystemsEMA_SessionIdResponse,
                     ignoreredirects => 0
                 };
@@ -111,29 +114,66 @@ sub APsystemsEMA_SessionIdResponse
 
     Log3($name, 5, "APsystemsEMA_SessionIdResponse called");
 
-    if($err ne "")                                                                                                      # wenn ein Fehler bei der HTTP Abfrage aufgetreten ist
+    if($err ne ""  or $param->{code} != 200)                                                                                                      # wenn ein Fehler bei der HTTP Abfrage aufgetreten ist
     {
-        Log3 $name, 3, "error while requesting ".$param->{url}." - $err";                                               # Eintrag fürs Log
+        Log3 $name, 3, "error while requesting ".$param->{url}."\nErr: $err\nCode: $param->{code}\nData: $data";                                               # Eintrag fürs Log
         readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);                                                        # Readings erzeugen
     }
-
     else
     {
+        my $username = urlEncode($hash->{Username});
+        $hash->{Cookie} = APsystemsEMA_GetCookies($hash,$param->{httpheader});
+        my $param = {
+                        url        => "https://www.apsystemsema.com/ema/ajax/newCheckRegisterAjax/getHumanVerifyAjax",
+                        timeout    => 5,
+                        hash       => $hash,
+                        method     => "POST",
+                        header     => { "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8",
+                                        "Cookie" => $hash->{Cookie},
+                                        "User-Agent" => "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                                        "Accept" => "application/json, text/javascript, */*; q=0.01",
+                                      },
+                        callback   => \&APsystemsEMA_VerifyHumanResponse,
+                        data       => "username=$username",
+                        ignoreredirects => 1
+                    };
 
-        my $date = urlEncode(strftime("%Y-%m-%d+%H:%M:%S",localtime));
+        HttpUtils_NonblockingGet($param);                                                                                    # Starten der HTTP Abfrage. Es gibt keinen Return-Code. 
+    }
+
+    return undef;
+}
+
+sub APsystemsEMA_VerifyHumanResponse
+{
+    my ($param, $err, $data) = @_;
+    my $hash = $param->{hash};
+    my $name = $hash->{NAME};
+
+    Log3($name, 5, "APsystemsEMA_VerifyHumanResponse called");
+
+    if($err ne ""  or $param->{code} != 200)                                                                                                      # wenn ein Fehler bei der HTTP Abfrage aufgetreten ist
+    {
+        Log3 $name, 3, "error while requesting ".$param->{url}."\nErr: $err\nCode: $param->{code}\nData: $data";                                               # Eintrag fürs Log
+        readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);                                                        # Readings erzeugen
+    }
+    else
+    {
+        my $date = strftime("%Y-%m-%d+%H:%M:%S",localtime) =~ s/:/%3A/gr;
         my $username = urlEncode($hash->{Username});
         my $password = urlEncode($hash->{Password});
-	$hash->{Cookie} = APsystemsEMA_GetCookies($hash,$param->{httpheader});
         my $param = {
                         url        => "https://www.apsystemsema.com/ema/loginEMA.action",
                         timeout    => 5,
                         hash       => $hash,
                         method     => "POST",
-                        header     => { "Content-Type" => "application/x-www-form-urlencoded;",
-                                        "Cookie" => $hash->{Cookie}
+                        header     => { "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8",
+                                        "Cookie" => $hash->{Cookie},
+                                        "User-Agent" => "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                                        "Accept" => "application/json, text/javascript, */*; q=0.01",
                                       },
                         callback   => \&APsystemsEMA_LoginResponse,
-                        data       => "today=$date&code=&username=$username&password=$password&verifyCode=+",	
+                        data       => "today=$date&code=&humanVerifyFlag=&username=$username&password=$password&verifyCode=+",	
                         ignoreredirects => 1
                     };
 
@@ -151,12 +191,13 @@ sub APsystemsEMA_LoginResponse
 
     Log3($name, 5, "APsystemsEMA_LoginResponse called");
 
-    if($err ne "")
+    if($err ne "" or $param->{code} != 302 or $data =~ m/https:\/\/www\.apsystemsema\.com\/ema\/exceptionIndex\.action/s )
     {
-        Log3 $name, 3, "error while requesting ".$param->{url}." - $err";
+        Log3 $name, 3, "error while requesting ".$param->{url}."\nErr: $err\nCode: $param->{code}\nData: $data";                                               # Eintrag fürs Log
     }
     else
     {
+        Log3 $name, 3, "Response:\nHeader:$param->{httpheader}\nData:$data";
 	$hash->{Cookie} = APsystemsEMA_GetCookies($hash,$param->{httpheader});
         $hash->{UserId} = $hash->{HTTPCookieHash}{userId}{Value};
 
