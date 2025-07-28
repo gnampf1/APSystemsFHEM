@@ -197,7 +197,6 @@ sub APsystemsEMA_LoginResponse
     }
     else
     {
-        Log3 $name, 3, "Response:\nHeader:$param->{httpheader}\nData:$data";
 	$hash->{Cookie} = APsystemsEMA_GetCookies($hash,$param->{httpheader});
         $hash->{UserId} = $hash->{HTTPCookieHash}{userId}{Value};
 
