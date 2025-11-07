@@ -15,6 +15,9 @@ use Try::Tiny::SmartCatch;
 use HttpUtils;
 use POSIX qw(strftime);
 use JSON;
+use Crypt::Mode::CBC;
+use Crypt::PK::RSA;
+use MIME::Base64;
 
 our $deb = 1;
 
@@ -159,9 +162,46 @@ sub APsystemsEMA_VerifyHumanResponse
     }
     else
     {
+try sub {
         my $date = strftime("%Y-%m-%d+%H:%M:%S",localtime) =~ s/:/%3A/gr;
-        my $username = urlEncode($hash->{Username});
-        my $password = urlEncode($hash->{Password});
+        my $username = $hash->{Username};
+        my $password = $hash->{Password};
+        my $public = "-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgdwBhVodMQ84lYZhDSGO
+UDQAks+NMa7WQ83mR1OyHiIWtZ1wWAh4H7fclkdNS3lWCmDH9ldF7Kf6JlEvZTc0
+Textv+YMLXO2gdDIoBvg7vlhY4HxOjXUIFQ+s7cWRrmEIgVVnTBLZU1GMC8zld7W
+H9v9EYCAqK7rvGJP0STZ/g6BP8RGJKhdpY6b+ndMXRUBYwkqy8m1SDJHm1FeHSLQ
+WTaWbP5pz1yrGkkwvx+pib6wli+WE70/uPHp0zXZK5iUwmRQfOkTjDOGJyEE1dqk
+fHDTqne5ED81M4fCIEFYhyvnr1rifVJKHCDRGYQpJ0CiffjjH1ZOGSIN4JPG1EEI
+jQIDAQAB
+-----END PUBLIC KEY-----
+";
+    my $pk = Crypt::PK::RSA->new(\$public);
+
+    my $aesKey = "";
+    my $aesIv = "";
+    for (1 .. 8)
+    {
+        $aesKey = $aesKey . sprintf("%02X", rand(0xff));
+        $aesIv = $aesIv . sprintf("%02D", rand(99));
+    }
+
+    my $key = $pk->encrypt($aesKey, 'v1.5');
+    $key = encode_base64($key) =~ s/(\r|\n)//gr ;
+    $key = urlEncode(urlEncode($key));
+
+    my $version = $pk->encrypt($aesIv, 'v1.5');
+    $version = encode_base64($version) =~ s/(\r|\n)//gr;
+    $version = urlEncode(urlEncode($version));
+
+    my $cbc = Crypt::Mode::CBC->new('AES', 4);
+    $username = $cbc->encrypt($username, $aesKey, $aesIv);
+    $username = sprintf "%*v02x","" ,$username;
+
+    $password = $cbc->encrypt($password, $aesKey, $aesIv);
+    $password = sprintf "%*v02x","" ,$password;
+
+
         my $param = {
                         url        => "https://www.apsystemsema.com/ema/loginEMA.action",
                         timeout    => 5,
@@ -173,11 +213,12 @@ sub APsystemsEMA_VerifyHumanResponse
                                         "Accept" => "application/json, text/javascript, */*; q=0.01",
                                       },
                         callback   => \&APsystemsEMA_LoginResponse,
-                        data       => "today=$date&code=&humanVerifyFlag=&username=$username&password=$password&verifyCode=+",	
+			data	   => "today=$date&code=&humanVerifyFlag=&username=$username&key=$key&version=$version&password=$password&verifyCode=+",
                         ignoreredirects => 1
                     };
 
         HttpUtils_NonblockingGet($param);                                                                                    # Starten der HTTP Abfrage. Es gibt keinen Return-Code. 
+}, catch_default sub { Log3 $name, 3, "APs-Ex $_"; };
     }
 
     return undef;
